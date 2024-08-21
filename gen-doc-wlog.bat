@@ -1,0 +1,1 @@
+call %~dp0\gen-doc.bat >%~dp0\gen-doc.log 2>&1

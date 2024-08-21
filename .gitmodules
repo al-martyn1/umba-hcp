@@ -1,0 +1,6 @@
+[submodule ".cmake"]
+	path = .cmake
+	url = https://github.com/al-martyn1/.cmake.git
+[submodule ".bat"]
+	path = .bat
+	url = https://github.com/al-martyn1/.bat.git
