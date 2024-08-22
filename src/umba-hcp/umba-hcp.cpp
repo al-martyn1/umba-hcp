@@ -61,7 +61,7 @@ int printHelp(int res)
 {
     std::cout << "Usage: umba-hcp [OPTIONS] FILE [FILE...]\n"
                  "where OPTIONS are:\n"
-                 "  -IPATH[,PATH...]  - add include search paths.\n"
+                 "  -IPATH[;PATH...]  - add include search paths.\n"
                  "  -oPATH            - set destination path.\n"
                  "  -A, --all           - process all includes.\n"
                  "  -S, --system        - process system includes only.\n"
