@@ -18,9 +18,6 @@
 #include "umba/text_position_info.h"
 #include "umba/iterator.h"
 #include "umba/the.h"
-//
-// #include "utils.h"
-//
 #include "marty_cpp/src_normalization.h"
 //
 
@@ -35,13 +32,7 @@
 
 
 
-#define USE_SIMPLE_NUMBER_SUFFIX_GLUING_FILTER
-// #define NUMBER_PRINTING_PRINT_PARSED_VALUE
-// #define PRINT_ONLY_NUMBERS
 #define USE_TRY_CATCH
-
-//#define DUPLICATE_TO_STD_OUT
-
 
 
 using std::cout;
@@ -105,7 +96,9 @@ bool findRelName(std::string &relNameFound, const std::vector<std::string> &incP
     for(const auto &p : incPaths)
     {
        if (umba::filename::makeRelPath(relNameFound, p, file))
+       {
            return true;
+       }
     }
 
     return false;
@@ -115,10 +108,6 @@ bool findRelName(std::string &relNameFound, const std::vector<std::string> &incP
 
 int main(int argc, char* argv[])
 {
-    // auto t1 = getCharClassTable();
-    // auto t2 = getTrieVector();
-    // auto t3 = getString();
-    // auto t4 = getIterator();
 
     std::vector<std::string> argsVec;
     for(int argIdx=1; argIdx<argc; ++argIdx)
@@ -141,21 +130,15 @@ int main(int argc, char* argv[])
             {
                 // По умолчанию студия задаёт текущим каталогом На  уровень выше от того, где лежит бинарник
                 rootPath = umba::filename::makeCanonical(umba::filename::appendPath<std::string>(cwd, "..\\..\\..\\"));
-                //argsParser.args.push_back("--batch-output-root=D:/temp/mdpp-test");
             }
             else if (winhelpers::isProcessHasParentOneOf({"code"}))
             {
                 // По умолчанию VSCode задаёт текущим каталогом тот, где лежит бинарник
                 rootPath = umba::filename::makeCanonical(umba::filename::appendPath<std::string>(cwd, "..\\..\\..\\..\\"));
-                //argsParser.args.push_back("--batch-output-root=C:/work/temp/mdpp-test");
-
             }
             else
             {
-                //rootPath = umba::filename::makeCanonical(umba::filename::appendPath<std::string>(cwd, "..\\..\\..\\"));
             }
-
-            //#endif
 
             if (!rootPath.empty())
                 rootPath = umba::filename::appendPathSepCopy(rootPath);
@@ -163,16 +146,14 @@ int main(int argc, char* argv[])
         #endif
 
         argsVec.clear();
-        argsVec.emplace_back("-I" + rootPath + "_libs");
+        argsVec.emplace_back("-Id:/umbas;" + rootPath + "_libs");
         argsVec.emplace_back(rootPath + "_libs/umba/tokenizer.h");
         argsVec.emplace_back("-o" + rootPath + "tests/hcp");
 
     }
 
 
-
     using namespace umba::tokenizer;
-
 
     std::list<std::string>   inputFiles;
     std::string              inputFilename;
@@ -214,7 +195,6 @@ int main(int argc, char* argv[])
             }
 
             std::vector<std::string> paths = umba::filename::splitPathList(arg);
-            //incPaths.insert(incPaths.end(), paths.begin(), paths.end());
             for(const auto &p: paths)
                 incPaths.emplace_back(umba::filename::makeAbsPath(p));
         }
@@ -252,110 +232,13 @@ int main(int argc, char* argv[])
     }
 
 
-    //payload_type numberTokenId = UMBA_TOKENIZER_TOKEN_NUMBER_USER_LITERAL_FIRST;
-
-    // umba::tokenizer::CppEscapedSimpleQuotedStringLiteralParser<char>  cppEscapedSimpleQuotedStringLiteralParser;
-    // umba::tokenizer::SimpleQuotedStringLiteralParser<char>            simpleQuotedStringLiteralParser;
-
-#if 0
-    auto tokenizer = TokenizerBuilder<char>().generateStandardCharClassTable()
-
-                                             .addNumbersPrefix("0b", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_BIN)
-                                             .addNumbersPrefix("0B", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_BIN)
-
-                                             .addNumbersPrefix("0d", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_DEC)
-                                             .addNumbersPrefix("0D", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_DEC)
-
-                                             .addNumbersPrefix("0" , numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_OCT | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_FLAG_MISS_DIGIT)
-
-                                             .addNumbersPrefix("0x", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_HEX)
-                                             .addNumbersPrefix("0X", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_HEX)
-
-
-                                             .addBrackets("{}", UMBA_TOKENIZER_TOKEN_CURLY_BRACKETS )
-                                             .addBrackets("()", UMBA_TOKENIZER_TOKEN_ROUND_BRACKETS )
-                                             .addBrackets("<>", UMBA_TOKENIZER_TOKEN_ANGLE_BRACKETS )
-                                             .addBrackets("[]", UMBA_TOKENIZER_TOKEN_SQUARE_BRACKETS)
-
-
-                                             .addSingleLineComment("//", UMBA_TOKENIZER_TOKEN_OPERATOR_SINGLE_LINE_COMMENT_FIRST)
-                                             .setMultiLineComment("/*", "*/")
-
-                                             // Операторы # и ## доступны только внутри директивы define препроцессора.
-                                             // Для этого вначале работы мы сбрасываем признак umba::tokenizer::CharClass::opchar,
-                                             // при получении маркера директивы define - устанавливаем его,
-                                             // и при окончании блока препроцессора опять сбрасываем
-                                             .addOperator("#"  , UMBA_TOKENIZER_TOKEN_OPERATOR_CC_PP_CONCAT                  )
-                                             .addOperator("##" , UMBA_TOKENIZER_TOKEN_OPERATOR_CC_PP_STRINGIFY               )
-
-                                             .addOperator("."  , UMBA_TOKENIZER_TOKEN_OPERATOR_DOT                           )
-                                             .addOperator("...", UMBA_TOKENIZER_TOKEN_OPERATOR_VA_ARGS                       )
-                                             .addOperator("+"  , UMBA_TOKENIZER_TOKEN_OPERATOR_ADDITION                      )
-                                             .addOperator("-"  , UMBA_TOKENIZER_TOKEN_OPERATOR_SUBTRACTION                   )
-                                             .addOperator("*"  , UMBA_TOKENIZER_TOKEN_OPERATOR_MULTIPLICATION                )
-                                             .addOperator("/"  , UMBA_TOKENIZER_TOKEN_OPERATOR_DIVISION                      )
-                                             .addOperator("%"  , UMBA_TOKENIZER_TOKEN_OPERATOR_MODULO                        )
-                                             .addOperator("++" , UMBA_TOKENIZER_TOKEN_OPERATOR_INCREMENT                     )
-                                             .addOperator("--" , UMBA_TOKENIZER_TOKEN_OPERATOR_DECREMENT                     )
-                                             .addOperator("==" , UMBA_TOKENIZER_TOKEN_OPERATOR_EQUAL                         )
-                                             .addOperator("!=" , UMBA_TOKENIZER_TOKEN_OPERATOR_NOT_EQUAL                     )
-                                             .addOperator(">"  , UMBA_TOKENIZER_TOKEN_OPERATOR_GREATER                       )
-                                             .addOperator("<"  , UMBA_TOKENIZER_TOKEN_OPERATOR_LESS                          )
-                                             .addOperator(">=" , UMBA_TOKENIZER_TOKEN_OPERATOR_GREATER_EQUAL                 )
-                                             .addOperator("<=" , UMBA_TOKENIZER_TOKEN_OPERATOR_LESS_EQUAL                    )
-                                             .addOperator("<=>", UMBA_TOKENIZER_TOKEN_OPERATOR_THREE_WAY_COMPARISON          )
-                                             .addOperator("!"  , UMBA_TOKENIZER_TOKEN_OPERATOR_LOGICAL_NOT                   )
-                                             .addOperator("&&" , UMBA_TOKENIZER_TOKEN_OPERATOR_LOGICAL_AND                   )
-                                             .addOperator("||" , UMBA_TOKENIZER_TOKEN_OPERATOR_LOGICAL_OR                    )
-                                             .addOperator("~"  , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_NOT                   )
-                                             .addOperator("&"  , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_AND                   )
-                                             .addOperator("|"  , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_OR                    )
-                                             .addOperator("^"  , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_XOR                   )
-                                             .addOperator("<<" , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_SHIFT_LEFT            )
-                                             .addOperator(">>" , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_SHIFT_RIGHT           )
-                                             .addOperator("="  , UMBA_TOKENIZER_TOKEN_OPERATOR_ASSIGNMENT                    )
-                                             .addOperator("+=" , UMBA_TOKENIZER_TOKEN_OPERATOR_ADDITION_ASSIGNMENT           )
-                                             .addOperator("-=" , UMBA_TOKENIZER_TOKEN_OPERATOR_SUBTRACTION_ASSIGNMENT        )
-                                             .addOperator("*=" , UMBA_TOKENIZER_TOKEN_OPERATOR_MULTIPLICATION_ASSIGNMENT     )
-                                             .addOperator("/=" , UMBA_TOKENIZER_TOKEN_OPERATOR_DIVISION_ASSIGNMENT           )
-                                             .addOperator("%=" , UMBA_TOKENIZER_TOKEN_OPERATOR_MODULO_ASSIGNMENT             )
-                                             .addOperator("&=" , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_AND_ASSIGNMENT        )
-                                             .addOperator("|=" , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_OR_ASSIGNMENT         )
-                                             .addOperator("^=" , UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_XOR_ASSIGNMENT        )
-                                             .addOperator("<<=", UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_SHIFT_LEFT_ASSIGNMENT )
-                                             .addOperator(">>=", UMBA_TOKENIZER_TOKEN_OPERATOR_BITWISE_SHIFT_RIGHT_ASSIGNMENT)
-                                             .addOperator(","  , UMBA_TOKENIZER_TOKEN_OPERATOR_COMMA)
-                                             .addOperator("->" , UMBA_TOKENIZER_TOKEN_OPERATOR_MEMBER_OF_POINTER             )
-                                             .addOperator("->*", UMBA_TOKENIZER_TOKEN_OPERATOR_POINTER_TO_MEMBER_OF_POINTER  )
-                                             .addOperator(".*" , UMBA_TOKENIZER_TOKEN_OPERATOR_POINTER_TO_MEMBER_OF_OBJECT   )
-                                             .addOperator(":"  , UMBA_TOKENIZER_TOKEN_OPERATOR_TERNARY_ALTERNATIVE           )
-                                             .addOperator("?"  , UMBA_TOKENIZER_TOKEN_OPERATOR_TERNARY_CONDITIONAL           )
-                                             .addOperator("::" , UMBA_TOKENIZER_TOKEN_OPERATOR_SCOPE_RESOLUTION              )
-                                             .addOperator(";"  , UMBA_TOKENIZER_TOKEN_OPERATOR_EXPRESSION_END                )
-                                             //.addOperator( )
-
-
-                                             .addStringLiteralParser("\'", &cppEscapedSimpleQuotedStringLiteralParser, UMBA_TOKENIZER_TOKEN_CHAR_LITERAL)
-                                             .addStringLiteralParser("\"", &cppEscapedSimpleQuotedStringLiteralParser, UMBA_TOKENIZER_TOKEN_STRING_LITERAL)
-                                             .addStringLiteralParser("<" , &simpleQuotedStringLiteralParser, UMBA_TOKENIZER_TOKEN_ANGLE_BACKETS_STRING_LITERAL)
-
-
-                                             .makeTokenizer();
-#endif
-
-
     bool bOk = true;
-
-    //using tokenizer_type      = std::decay<decltype(tokenizer)>;
 
     auto tokenizerBuilder = umba::tokenizer::makeTokenizerBuilderCpp<char>();
     using TokenizerBuilderType = decltype(tokenizerBuilder);
     using tokenizer_type       = typename TokenizerBuilderType::tokenizer_type;
 
-    //auto tokenizer        = tokenizerBuilder.makeTokenizerCpp(tokenizerBuilder, )
 
-
-    // using tokenizer_type       = decltype(tokenizer);
     using InputIteratorType    = typename tokenizer_type::iterator_type;
     using tokenizer_char_type  = typename tokenizer_type::value_type;
     using string_type          = typename tokenizer_type::string_type;
@@ -366,9 +249,6 @@ int main(int argc, char* argv[])
     bool inPreprocessor = false;
     bool inInclude      = false;
 
-    //tokenizer.setResetCharClassFlags('#', umba::tokenizer::CharClass::none, umba::tokenizer::CharClass::opchar); // Ничего не устанавливаем, сбрасываем opchar
-
-    // findInclude(const std::vector<std::string> &incPaths, const std::string &file)
 
     auto tokenHandler =      [&]( auto &tokenizer
                                 , bool bLineStart, payload_type tokenType
@@ -445,35 +325,6 @@ int main(int argc, char* argv[])
                                      }
                                  }
 
-
-                                 #if 0
-                                 //std::string findInclude(const std::string &incPath, const std::string &file)
-                                 // UMBA_TOKENIZER_TOKEN_ANGLE_BACKETS_STRING_LITERAL
-                                 if (tokenType==UMBA_TOKENIZER_TOKEN_STRING_LITERAL)
-                                 {
-                                     //inputFilename
-                                     auto stringLiteralData = std::get<typename tokenizer_type::StringLiteralData>(parsedData);
-                                     auto dataStr = string_type(stringLiteralData.data);
-
-                                     if (inInclude)
-                                     {
-                                         auto path = umba::filename::getPath(inputFilename);
-                                         // Файл может быть задан относительно текущего файла
-                                         // или искаться в инклюд путях
-
-                                         auto nameRelativeToCurFile = umba::filename::makeCanonical(umba::filename::appendPath(path, dataStr));
-                                         if (umba::filesys::isPathExist(nameRelativeToCurFile) && umba::filesys::isPathFile(nameRelativeToCurFile))
-                                             inputFiles.emplace_back(nameRelativeToCurFile);
-                                         else
-                                         {
-                                             auto nameRelativeToSrcPath = umba::filename::makeCanonical(umba::filename::appendPath(srcPath, dataStr));
-                                             if (umba::filesys::isPathExist(nameRelativeToSrcPath) && umba::filesys::isPathFile(nameRelativeToSrcPath))
-                                                 inputFiles.emplace_back(nameRelativeToSrcPath);
-                                         }
-                                     }
-                                 }
-                                 #endif
-
                                  return true;
                              };
 
@@ -488,15 +339,8 @@ int main(int argc, char* argv[])
         marty_cpp::ELinefeedType outputLinefeed = marty_cpp::ELinefeedType::lf;
     #endif
 
-    // std::string srcPath;
-    // std::string srcFile;
-    // std::string dstPath;
-
     std::cout << "Umba Header Copy Tool v1.0\n\n";
 
-    // inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::appendPath(srcPath, srcFile)));
-    // inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::makeAbsPath(srcFile, srcPath)));
-    // inputFiles.emplace_back( umba::filename::makeCanonical(srcFile));
 
     std::set<std::string>   filesToCopy;
     std::set<std::string>   processedFiles;
@@ -525,15 +369,7 @@ int main(int argc, char* argv[])
 
         filesToCopy.emplace(inputFilename);
 
-        // if (text.back()!='\n' && text.back()!='\r')
-        // {
-        //     std::cout << "Warning: no linefeed at end of file\n";
-        // }
-
-        //oss = std::ostringstream();
         bOk = true;
-
-        //oss<<"<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\"/>\n<style>\n" << cssStyle << "\n</style>\n</head>\n<body>\n<pre>\n";
 
 #if defined(USE_TRY_CATCH)
         try
@@ -571,6 +407,7 @@ int main(int argc, char* argv[])
     for(auto f : filesToCopy)
     {
         std::string relName;
+
         //bool isRel = umba::filename::makeRelPath( relName, srcPath, f );
         bool isRel = findRelName(relName, incPaths, f);
 
@@ -598,5 +435,4 @@ int main(int argc, char* argv[])
     return 0;
 
 }
-
 
