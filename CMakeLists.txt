@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21.0)
-project(umba-fsm VERSION 0.1.0 LANGUAGES C CXX)
+project(umba-hcp VERSION 0.1.0 LANGUAGES C CXX)
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 

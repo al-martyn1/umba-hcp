@@ -48,12 +48,12 @@ using std::cerr;
 
 enum IncludeMode
 {
-    userIncludes    = 1,
-    systemIncludes  = 2,
-    allIncludes     = 3
-}
+    userIncludes = 1,
+    systemIncludes = 2,
+    allIncludes = 3
+};
 
-IncludeMode  includeMode = userIncludes;
+//IncludeMode  includeMode = userIncludes;
 
 
 struct TokenInfo
