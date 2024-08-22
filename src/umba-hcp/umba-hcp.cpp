@@ -9,6 +9,8 @@
 #include "umba/filename.h"
 #include "umba/filesys.h"
 #include "umba/tokenizer/token_filters.h"
+#include "umba/tokenizer/lang/cpp.h"
+#include "umba/string_plus.h"
 //
 #include "umba/debug_helpers.h"
 
@@ -53,7 +55,7 @@ enum IncludeMode
     allIncludes = 3
 };
 
-//IncludeMode  includeMode = userIncludes;
+
 
 
 struct TokenInfo
@@ -64,6 +66,50 @@ struct TokenInfo
 };
 
 
+int printHelp(int res)
+{
+    std::cout << "Usage: umba-hcp [OPTIONS] FILE [FILE...]\n"
+                 "where OPTIONS are:\n"
+                 "  -IPATH[,PATH...]  - add include search paths.\n"
+                 "  -oPATH            - set destination path.\n"
+                 "  -A, --all           - process all includes.\n"
+                 "  -S, --system        - process system includes only.\n"
+                 "  -U, --user          - process user includes only.\n"
+                 ;
+
+    return res;
+}
+
+std::string findInclude(const std::string &incPath, const std::string &file)
+{
+    std::string fullName = umba::filename::makeAbsPath(file, incPath);
+    if (umba::filesys::isFileExist(fullName))
+        return fullName;
+    return std::string();
+}
+
+std::string findInclude(const std::vector<std::string> &incPaths, const std::string &file)
+{
+    for(const auto &p : incPaths)
+    {
+        auto fullName = findInclude(p, file);
+        if (fullName.empty())
+            return fullName;
+    }
+
+    return std::string();
+}
+
+bool findRelName(std::string &relNameFound, const std::vector<std::string> &incPaths, const std::string &file )
+{
+    for(const auto &p : incPaths)
+    {
+       if (umba::filename::makeRelPath(relNameFound, p, file))
+           return true;
+    }
+
+    return false;
+}
 
 
 
@@ -74,36 +120,15 @@ int main(int argc, char* argv[])
     // auto t3 = getString();
     // auto t4 = getIterator();
 
-    using namespace umba::tokenizer;
-
-    //std::vector<std::string>  inputFiles;
-
-    std::string srcPath;
-    std::string srcFile;
-    std::string dstPath;
-
-    std::string inputFilename;
-    std::list<std::string> inputFiles;
-
-
-    if (argc>3)
+    std::vector<std::string> argsVec;
+    for(int argIdx=1; argIdx<argc; ++argIdx)
     {
-        srcPath = argv[1];
-        srcFile = argv[2];
-        dstPath = argv[3];
+        argsVec.emplace_back(argv[argIdx]);
     }
-
-    srcPath = umba::filename::makeAbsPath(srcPath);
-    srcFile = umba::filename::makeAbsPath(srcFile);
-    dstPath = umba::filename::makeAbsPath(dstPath);
-
 
     if (umba::isDebuggerPresent() /*  || inputFiles.empty() */ )
     {
-
-        srcPath.clear();
-        srcFile.clear();
-        dstPath.clear();
+        argsVec.clear();
 
         std::string cwd = umba::filesys::getCurrentDirectory<std::string>();
         std::cout << "Working Dir: " << cwd << "\n";
@@ -137,25 +162,102 @@ int main(int argc, char* argv[])
 
         #endif
 
-        srcPath = rootPath + "_libs";
-        srcFile = "umba/tokenizer.h";
-        dstPath = rootPath + "tests/hcp";
+        argsVec.clear();
+        argsVec.emplace_back("-I" + rootPath + "_libs");
+        argsVec.emplace_back(rootPath + "_libs/umba/tokenizer.h");
+        argsVec.emplace_back("-o" + rootPath + "tests/hcp");
 
+    }
+
+
+
+    using namespace umba::tokenizer;
+
+
+    std::list<std::string>   inputFiles;
+    std::string              inputFilename;
+
+    std::vector<std::string> incPaths;
+    std::string              dstPath;
+    IncludeMode              includeMode = userIncludes;
+
+    for(auto arg : argsVec)
+    {
+
+        if (arg.empty())
+            continue;
+
+        if (arg[0]!='-')
+        {
+            inputFiles.emplace_back(umba::filename::makeAbsPath(arg));
+            continue;
+        }
+
+        // Разбираем опции
+        if (umba::string_plus::starts_with_and_strip(arg, "-o"))
+        {
+            if (arg.empty())
+            {
+                std::cerr << "Invalid option '-o' value: '" << arg << "'\n" << std::flush;
+                return printHelp(1);
+            }
+
+            dstPath = umba::filename::makeAbsPath(arg);
+            continue;
+        }
+        else if (umba::string_plus::starts_with_and_strip(arg, "-I"))
+        {
+            if (arg.empty())
+            {
+                std::cerr << "Invalid option '-I' value: '" << arg << "'\n" << std::flush;
+                return printHelp(1);
+            }
+
+            std::vector<std::string> paths = umba::filename::splitPathList(arg);
+            //incPaths.insert(incPaths.end(), paths.begin(), paths.end());
+            for(const auto &p: paths)
+                incPaths.emplace_back(umba::filename::makeAbsPath(p));
+        }
+        else if (arg=="-A" || arg=="--all")
+        {
+            includeMode = allIncludes;
+        }
+        else if (arg=="-S" || arg=="--system")
+        {
+            includeMode = systemIncludes;
+        }
+        else if (arg=="-U" || arg=="--user")
+        {
+            includeMode = userIncludes;
+        }
+    }
+
+
+    if (incPaths.empty())
+    {
+        std::cerr << "No include paths taken (-I option)\n" << std::flush;
+        return printHelp(1);
+    }
+
+    if (inputFiles.empty())
+    {
+        std::cerr << "No input files taken\n" << std::flush;
+        return printHelp(1);
     }
 
     if (dstPath.empty())
     {
-        std::cout << "Usage: umba-hcp INC_PATH FILE_TO_PROCESS DST_PATH\n";
-        return 1;
+        std::cerr << "No destination path taken\n" << std::flush;
+        return printHelp(1);
     }
 
 
-    payload_type numberTokenId = UMBA_TOKENIZER_TOKEN_NUMBER_USER_LITERAL_FIRST;
+    //payload_type numberTokenId = UMBA_TOKENIZER_TOKEN_NUMBER_USER_LITERAL_FIRST;
 
-    umba::tokenizer::CppEscapedSimpleQuotedStringLiteralParser<char>  cppEscapedSimpleQuotedStringLiteralParser;
-    umba::tokenizer::SimpleQuotedStringLiteralParser<char>            simpleQuotedStringLiteralParser;
+    // umba::tokenizer::CppEscapedSimpleQuotedStringLiteralParser<char>  cppEscapedSimpleQuotedStringLiteralParser;
+    // umba::tokenizer::SimpleQuotedStringLiteralParser<char>            simpleQuotedStringLiteralParser;
 
-
+#if 0
     auto tokenizer = TokenizerBuilder<char>().generateStandardCharClassTable()
 
                                              .addNumbersPrefix("0b", numberTokenId++ | UMBA_TOKENIZER_TOKEN_NUMBER_LITERAL_BASE_BIN)
@@ -239,15 +341,21 @@ int main(int argc, char* argv[])
 
 
                                              .makeTokenizer();
-
+#endif
 
 
     bool bOk = true;
 
     //using tokenizer_type      = std::decay<decltype(tokenizer)>;
 
+    auto tokenizerBuilder = umba::tokenizer::makeTokenizerBuilderCpp<char>();
+    using TokenizerBuilderType = decltype(tokenizerBuilder);
+    using tokenizer_type       = typename TokenizerBuilderType::tokenizer_type;
 
-    using tokenizer_type       = decltype(tokenizer);
+    //auto tokenizer        = tokenizerBuilder.makeTokenizerCpp(tokenizerBuilder, )
+
+
+    // using tokenizer_type       = decltype(tokenizer);
     using InputIteratorType    = typename tokenizer_type::iterator_type;
     using tokenizer_char_type  = typename tokenizer_type::value_type;
     using string_type          = typename tokenizer_type::string_type;
@@ -258,9 +366,11 @@ int main(int argc, char* argv[])
     bool inPreprocessor = false;
     bool inInclude      = false;
 
-    tokenizer.setResetCharClassFlags('#', umba::tokenizer::CharClass::none, umba::tokenizer::CharClass::opchar); // Ничего не устанавливаем, сбрасываем opchar
+    //tokenizer.setResetCharClassFlags('#', umba::tokenizer::CharClass::none, umba::tokenizer::CharClass::opchar); // Ничего не устанавливаем, сбрасываем opchar
 
-    tokenizer.tokenHandler = [&]( auto &tokenizer
+    // findInclude(const std::vector<std::string> &incPaths, const std::string &file)
+
+    auto tokenHandler =      [&]( auto &tokenizer
                                 , bool bLineStart, payload_type tokenType
                                 , InputIteratorType b, InputIteratorType e
                                 , token_parsed_data parsedData // std::basic_string_view<tokenizer_char_type> parsedData
@@ -301,7 +411,44 @@ int main(int argc, char* argv[])
                                  }
 
 
-                                 // Обрабатываем только файлы, которые инклюдятся через кавычки, а не угловые скобки
+                                 if (inInclude && (tokenType==UMBA_TOKENIZER_TOKEN_STRING_LITERAL || tokenType==UMBA_TOKENIZER_TOKEN_ANGLE_BACKETS_STRING_LITERAL))
+                                 {
+                                     auto stringLiteralData = std::get<typename tokenizer_type::StringLiteralData>(parsedData);
+                                     auto includeFileName = string_type(stringLiteralData.data);
+                                 
+                                     if (tokenType==UMBA_TOKENIZER_TOKEN_STRING_LITERAL && (includeMode==userIncludes || includeMode==allIncludes))
+                                     {
+                                         auto path = umba::filename::getPath(inputFilename);
+                                         // Файл может быть задан относительно текущего файла
+
+                                         auto foundFile = findInclude(path, includeFileName);
+                                         if (!foundFile.empty())
+                                         {
+                                             inputFiles.emplace_back(foundFile);
+                                         }
+                                         else
+                                         {
+                                             foundFile = findInclude(incPaths, includeFileName);
+                                             if (!foundFile.empty())
+                                             {
+                                                 inputFiles.emplace_back(foundFile);
+                                             }
+                                         }
+                                     }
+                                     else if (tokenType==UMBA_TOKENIZER_TOKEN_ANGLE_BACKETS_STRING_LITERAL && (includeMode==systemIncludes || includeMode==allIncludes))
+                                     {
+                                         auto foundFile = findInclude(incPaths, includeFileName);
+                                         if (!foundFile.empty())
+                                         {
+                                             inputFiles.emplace_back(foundFile);
+                                         }
+                                     }
+                                 }
+
+
+                                 #if 0
+                                 //std::string findInclude(const std::string &incPath, const std::string &file)
+                                 // UMBA_TOKENIZER_TOKEN_ANGLE_BACKETS_STRING_LITERAL
                                  if (tokenType==UMBA_TOKENIZER_TOKEN_STRING_LITERAL)
                                  {
                                      //inputFilename
@@ -325,21 +472,15 @@ int main(int argc, char* argv[])
                                          }
                                      }
                                  }
+                                 #endif
 
                                  return true;
                              };
 
+    auto tokenizer = umba::tokenizer::makeTokenizerCpp( tokenizerBuilder
+                                                      , tokenHandler
+                                                      );
 
-    // Фильтры, установленные позже, отрабатывают раньше
-
-    tokenizer.installTokenFilter<umba::tokenizer::filters::CcPreprocessorFilter<tokenizer_type> >();
-    tokenizer.installTokenFilter<umba::tokenizer::filters::SimpleSuffixGluingFilter<tokenizer_type> >();
-
-    // if (inputFiles.empty())
-    // {
-    //     std::cout << "No input files taken\n";
-    //     return 1;
-    // }
 
     #if defined(WIN32) || defined(_WIN32)
         marty_cpp::ELinefeedType outputLinefeed = marty_cpp::ELinefeedType::crlf;
@@ -353,9 +494,9 @@ int main(int argc, char* argv[])
 
     std::cout << "Umba Header Copy Tool v1.0\n\n";
 
-    //inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::appendPath(srcPath, srcFile)));
-    //inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::makeAbsPath(srcFile, srcPath)));
-    inputFiles.emplace_back( umba::filename::makeCanonical(srcFile));
+    // inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::appendPath(srcPath, srcFile)));
+    // inputFiles.emplace_back( umba::filename::makeCanonical(umba::filename::makeAbsPath(srcFile, srcPath)));
+    // inputFiles.emplace_back( umba::filename::makeCanonical(srcFile));
 
     std::set<std::string>   filesToCopy;
     std::set<std::string>   processedFiles;
@@ -430,7 +571,8 @@ int main(int argc, char* argv[])
     for(auto f : filesToCopy)
     {
         std::string relName;
-        bool isRel = umba::filename::makeRelPath( relName, srcPath, f );
+        //bool isRel = umba::filename::makeRelPath( relName, srcPath, f );
+        bool isRel = findRelName(relName, incPaths, f);
 
         std::cout << (isRel?"+ ":"- ") << f << " ";
 
