@@ -295,7 +295,7 @@ int main(int argc, char* argv[])
                                  {
                                      auto stringLiteralData = std::get<typename tokenizer_type::StringLiteralData>(parsedData);
                                      auto includeFileName = string_type(stringLiteralData.data);
-                                 
+
                                      if (tokenType==UMBA_TOKENIZER_TOKEN_STRING_LITERAL && (includeMode==userIncludes || includeMode==allIncludes))
                                      {
                                          auto path = umba::filename::getPath(inputFilename);
