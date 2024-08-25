@@ -11,19 +11,18 @@
 
 :UMBA_TOOLS_VAR_IS_SET
 
-@call %~dp0\.bat\setup_out_pp_root_paths.bat
-@rem call %~dp0\update_md-pp-view-conf-options.bat
+@call "%~dp0\.bat\setup_out_root_paths.bat"
 
-@if not exist %UMBA_TOOLS%\bin    mkdir %UMBA_TOOLS%\bin
-@if not exist %UMBA_TOOLS%\conf   mkdir %UMBA_TOOLS%\conf
+@if not exist "%UMBA_TOOLS%\bin"    mkdir "%UMBA_TOOLS%\bin"
+@if not exist "%UMBA_TOOLS%\conf"   mkdir "%UMBA_TOOLS%\conf"
 
-@IF "%PPROOTPATH%"=="" @(
-    @echo PPROOTPATH not found
+@IF "%OUTROOTPATH%"=="" @(
+    @echo OUTROOTPATH not found
     exit /B 1
 )
 
-copy /Y "%PPROOTPATH%\Release\%SLN%.exe"         %UMBA_TOOLS%\bin\
+copy /Y "%OUTROOTPATH%\Release\%SLN%.exe"         "%UMBA_TOOLS%\bin\"
 
-@if exist _distr_conf @xcopy /Y /S /E /I /F /R %~dp0\_distr_conf\conf\*               %UMBA_TOOLS%\conf
+@if exist _distr_conf @xcopy /Y /S /E /I /F /R "%~dp0\_distr_conf\conf\*"               "%UMBA_TOOLS%\conf"
 
 @rem umba-brief-scanner --help > help.txt
