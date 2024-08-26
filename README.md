@@ -69,12 +69,12 @@ umba-hcp [OPTIONS] FILE [FILE...]
 
 Для генерации сборочных скриптов и их сборки при помощи `MSBuild` предназначены файлы:
 
- - `.bat/cmake_build_all_msvc2017.bat`
- - `.bat/cmake_build_all_msvc2019.bat`
- - `.bat/cmake_build_all_msvc2022.bat`
  - `.bat/cmake_generate_all_msvc2017.bat`
  - `.bat/cmake_generate_all_msvc2019.bat`
  - `.bat/cmake_generate_all_msvc2022.bat`
+ - `.bat/cmake_build_all_msvc2017.bat`
+ - `.bat/cmake_build_all_msvc2019.bat`
+ - `.bat/cmake_build_all_msvc2022.bat`
 
 
 ## Открытие проекта в IDE
